@@ -92,6 +92,100 @@ flowchart TD
 | 📡 **Callback Logging** | Logs token usage for every LLM call |
 
 ---
+---
+
+## 🛡️ Production-Ready Features
+
+### 🔀 LLM Fallback
+If the primary model (LLaMA 3.3) is unavailable or hits rate limits,
+the app automatically switches to the fallback model (Mixtral 8x7B)
+without any interruption to the user.
+
+```python
+# Primary → Fallback chain
+primary  = ChatGroq(model="llama-3.3-70b-versatile", ...)
+fallback = ChatGroq(model="mixtral-8x7b-32768", ...)
+llm      = primary.with_fallbacks([fallback])
+```
+
+---
+
+### 🔄 Auto Retry on Rate Limits
+Both models are configured with automatic retries — if a request fails
+due to a rate limit or network issue, LangChain retries automatically
+before raising an error.
+
+```python
+ChatGroq(
+    max_retries=3,   # primary retries 3 times
+    max_retries=2,   # fallback retries 2 times
+)
+```
+
+---
+
+### 📡 Callback Logging
+Every LLM call is tracked via a custom `SQLCallbackHandler` that logs:
+- When each LLM call starts
+- Token usage (prompt, completion, total) after each call
+- Any LLM errors with full error details
+
+```python
+class SQLCallbackHandler(BaseCallbackHandler):
+    def on_llm_start(...)  → logs call start
+    def on_llm_end(...)    → logs token usage
+    def on_llm_error(...)  → logs errors
+```
+
+Useful for monitoring costs and debugging in production.
+
+---
+
+### 🧠 Response Caching
+Identical LLM calls return cached responses instantly — saving tokens
+and reducing latency for repeated questions.
+
+```python
+set_llm_cache(InMemoryCache())
+```
+
+---
+
+### ✅ SQL Validation
+Before executing any SQL on Snowflake, the app runs a dedicated
+validation step — catching syntax errors, wrong column names, and
+missing joins before they hit the database.
+
+```python
+# Validation response
+{
+  "is_valid": true,
+  "issues":   "none"
+}
+```
+
+---
+
+### ⚡ Streaming Responses
+When streaming is enabled, the answer appears word by word in real time
+— giving instant feedback instead of waiting for the full response.
+
+```python
+# Typing cursor effect while streaming
+answer_placeholder.markdown(full_answer + "▌")
+```
+
+---
+
+### 💬 Conversation Memory
+LangChain's `InMemoryChatMessageHistory` stores the last 6 messages —
+enabling natural follow-up questions without repeating context.
+
+```
+User:      "Who are the top 3 highest paid employees?"
+Assistant: "Alice, Bob, Carol..."
+User:      "Which department are they in?"  ← understands the context
+```
 
 ## 🛠️ Tech Stack
 
