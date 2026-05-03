@@ -51,8 +51,9 @@ callback_handler = SQLCallbackHandler()
 
 
 # ── Feature: LLM with retries + fallback ─────────────────────────────────────
+# ✅ Single function — handles everything
 def get_llm(streaming: bool = False):
-    return ChatGroq(
+    primary = ChatGroq(
         model="llama-3.3-70b-versatile",
         groq_api_key=os.getenv("GROQ_API_KEY"),
         temperature=0,
@@ -62,16 +63,6 @@ def get_llm(streaming: bool = False):
         callbacks=[callback_handler]
     )
 
-
-def get_llm_with_fallback():
-    primary = ChatGroq(
-        model="llama-3.3-70b-versatile",
-        groq_api_key=os.getenv("GROQ_API_KEY"),
-        temperature=0,
-        max_tokens=1024,
-        max_retries=3,
-        callbacks=[callback_handler]
-    )
     fallback = ChatGroq(
         model="mixtral-8x7b-32768",
         groq_api_key=os.getenv("GROQ_API_KEY"),
@@ -80,6 +71,7 @@ def get_llm_with_fallback():
         max_retries=2,
         callbacks=[callback_handler]
     )
+
     return primary.with_fallbacks([fallback])
 
 
@@ -123,7 +115,7 @@ IMPORTANT:
     # Add current question
     messages.append(HumanMessage(content=user_question))
 
-    llm      = get_llm_with_fallback()
+    llm      = get_llm()
     response = llm.invoke(messages)
     raw      = response.content.strip()
 
